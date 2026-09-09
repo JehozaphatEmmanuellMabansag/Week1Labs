@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../firebaseConfig';
+import {
+collection,
+addDoc,
+onSnapshot,
+doc,
+updateDoc,
+deleteDoc,
+} from 'firebase/firestore';
 import { View, Text, TextInput, Button, StyleSheet, FlatList } from 'react-native';
 import TaskCard from '../components/TaskCard';
 
@@ -12,46 +20,25 @@ export default function AddTaskScreen() {
   const [quote, setQuote] = useState("Loading today's motivation...");
 
 useEffect(() => {
-const loadTasks = async () => {
-
-try {
-
-const savedData = await AsyncStorage.getItem('tasks');
-
-if (savedData !== null) {
-setTasks(JSON.parse(savedData));
-
-}
-} catch (error) {
-
-console.error('Failed to load tasks:', error);
-
-} finally {
-
-setIsLoaded(true); // Mark initial load as complete
-
-}
-};
-loadTasks();
+const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+const loadedTasks = snapshot.docs.map((docItem) => ({
+id: docItem.id,
+...docItem.data(),
+}));
+setTasks(loadedTasks);
+});
+return unsubscribe;
 }, []);
 useEffect(() => {
-
-if (!isLoaded) return; // Prevent saving default/empty state on startup
-
-const saveTasks = async () => {
-
-try {
-
-await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
-
-} catch (error) {
-
-console.error('Failed to save tasks:', error);
-
-}
-};
-saveTasks();
-}, [tasks, isLoaded]);
+const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+const loadedTasks = snapshot.docs.map((docItem) => ({
+id: docItem.id,
+...docItem.data(),
+}));
+setTasks(loadedTasks);
+});
+return unsubscribe;
+}, []);
   
 useEffect(() => {
 
@@ -63,33 +50,21 @@ fetch('https://api.quotable.io/random')
 
 }, []);
 
-  function handleAddTask() {
-    if (taskText.trim() === '') {
-      setErrorMessage('Please type a task before adding it.');
-      return;
-    }
+async function handleAddTask() {
+if (taskText.trim() === '') {
+setErrorMessage('Please type a task before adding it.');
+return;
+}
+await addDoc(collection(db, 'tasks'), { title: taskText, done: false });
+setTaskText('');
+setErrorMessage('');
+}
 
-    const newTask = {
-      id: Date.now().toString(),
-      title: taskText.trim(),
-      done: false,
-    };
-
-    setTasks((currentTasks) => [...currentTasks, newTask]);
-    setTaskText('');
-    setErrorMessage('');
-  }
-
-  function handleToggleTask(id) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === id ? { ...task, done: !task.done } : task
-      )
-    );
-  }
-  function handleDeleteTask(id) {
-setTasks(tasks.filter((t) => t.id !== id));
-
+async function handleToggleTask(id, currentDone) {
+await updateDoc(doc(db, 'tasks', id), { done: !currentDone });
+}
+async function handleDeleteTask(id) {
+await deleteDoc(doc(db, 'tasks', id));
 }
 
   
@@ -135,8 +110,7 @@ fetch('https://api.quotable.io/random')
 <TaskCard
 title={item.title}
 done={item.done}
-
-onToggle={() => handleToggleTask(item.id)}
+onToggle={() => handleToggleTask(item.id, item.done)}
 onDelete={() => handleDeleteTask(item.id)}
 
 />
