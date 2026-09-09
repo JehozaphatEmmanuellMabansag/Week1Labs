@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { db } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import {
-collection,
-addDoc,
-onSnapshot,
-doc,
-updateDoc,
-deleteDoc,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  doc,
+  updateDoc,
+  deleteDoc,
 } from 'firebase/firestore';
 import { View, Text, TextInput, Button, StyleSheet, FlatList } from 'react-native';
 import TaskCard from '../components/TaskCard';
@@ -20,15 +22,29 @@ export default function AddTaskScreen() {
   const [quote, setQuote] = useState("Loading today's motivation...");
 
 useEffect(() => {
-const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+// 1. Guard check: Do not execute query if user is not yet loaded
+const user = auth.currentUser;
+if (!user) return;
+const tasksQuery = query(
+collection(db, 'tasks'),
+where('ownerId', '==', user.uid)
+);
+const unsubscribe = onSnapshot(
+tasksQuery,
+(snapshot) => {
 const loadedTasks = snapshot.docs.map((docItem) => ({
 id: docItem.id,
 ...docItem.data(),
 }));
 setTasks(loadedTasks);
-});
-return unsubscribe;
+},
+(error) => {
+console.error('Firestore listener error:', error.message);
+}
+);
+return () => unsubscribe();
 }, []);
+
 useEffect(() => {
 const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
 const loadedTasks = snapshot.docs.map((docItem) => ({
@@ -51,13 +67,28 @@ fetch('https://api.quotable.io/random')
 }, []);
 
 async function handleAddTask() {
-if (taskText.trim() === '') {
-setErrorMessage('Please type a task before adding it.');
-return;
-}
-await addDoc(collection(db, 'tasks'), { title: taskText, done: false });
-setTaskText('');
-setErrorMessage('');
+  if (taskText.trim() === '') {
+    setErrorMessage('Please type a task before adding it.');
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    setErrorMessage('User session not found. Please log in again.');
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, 'tasks'), {
+      title: taskText.trim(),
+      done: false,
+      ownerId: user.uid,
+    });
+    setTaskText('');
+    setErrorMessage('');
+  } catch (error) {
+    setErrorMessage(error.message);
+  }
 }
 
 async function handleToggleTask(id, currentDone) {
