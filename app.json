@@ -7,13 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-   "splash": {
-
-"image": "./assets/splash-icon.png",
-"resizeMode": "contain",
-"backgroundColor": "#1B2A4A"
-
-},
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B2A4A"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -22,10 +20,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.jemabansag.Week1Labs"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "80ae2d30-275d-43c2-9885-3b5f14d5bc2f"
+      }
     }
   }
 }

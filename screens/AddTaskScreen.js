@@ -18,7 +18,6 @@ export default function AddTaskScreen() {
   const [taskText, setTaskText] = useState('');
   const [tasks, setTasks] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoaded, setIsLoaded] = useState(false);
   const [quote, setQuote] = useState("Loading today's motivation...");
 
 useEffect(() => {
@@ -45,17 +44,6 @@ console.error('Firestore listener error:', error.message);
 return () => unsubscribe();
 }, []);
 
-useEffect(() => {
-const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
-const loadedTasks = snapshot.docs.map((docItem) => ({
-id: docItem.id,
-...docItem.data(),
-}));
-setTasks(loadedTasks);
-});
-return unsubscribe;
-}, []);
-  
 useEffect(() => {
 
 fetch('https://api.quotable.io/random')
